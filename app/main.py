@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Annotated
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
@@ -13,7 +15,9 @@ app = FastAPI(
 
 
 class PredictionRequest(BaseModel):
-    instances: list[list[float]] = Field(..., min_length=1)
+    instances: list[
+        Annotated[list[float], Field(min_length=4, max_length=4)]
+    ] = Field(..., min_length=1)
 
 
 class PredictionItem(BaseModel):
