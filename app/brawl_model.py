@@ -4,6 +4,7 @@ import csv
 import os
 from dataclasses import dataclass
 from pathlib import Path
+from threading import Lock
 from time import perf_counter
 
 import numpy as np
@@ -107,12 +108,15 @@ def build_model(path: Path = DATA_PATH) -> Pipeline:
 
 
 _MODEL: Pipeline | None = None
+_MODEL_LOCK = Lock()
 
 
 def get_model() -> Pipeline:
     global _MODEL
     if _MODEL is None:
-        _MODEL = build_model()
+        with _MODEL_LOCK:
+            if _MODEL is None:
+                _MODEL = build_model()
     return _MODEL
 
 

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from threading import Lock
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from app.brawl_model import BrawlMatch, predict_batch
+from app.brawl_model import BrawlMatch, get_model, predict_batch
 
 app = FastAPI(
     title="P10 IA as a Service",
@@ -42,7 +43,16 @@ _model_latency_total_ms = 0.0
 
 @app.get("/health")
 def health() -> dict[str, str]:
-    return {"status": "ok"}
+    return {"status": "alive"}
+
+
+@app.get("/health/ready")
+def readiness() -> dict[str, str]:
+    try:
+        get_model()
+    except (FileNotFoundError, ValueError) as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+    return {"status": "ready"}
 
 
 @app.get("/metrics", response_model=MetricsResponse)

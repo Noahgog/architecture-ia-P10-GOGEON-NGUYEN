@@ -26,6 +26,10 @@ uvicorn app.main:app --reload
 
 Puis ouvrir `http://127.0.0.1:8000/docs`.
 
+Les endpoints de santé sont séparés : `/health` vérifie que le processus est
+vivant, tandis que `/health/ready` vérifie que les données d'entraînement sont
+présentes et que le modèle peut être chargé.
+
 Les métriques cumulées du processus sont disponibles sur `GET /metrics` :
 
 - nombre de requêtes `/predict` ;

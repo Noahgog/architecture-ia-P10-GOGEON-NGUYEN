@@ -21,6 +21,10 @@ flowchart LR
 - mesures : médiane, p95, throughput, erreurs et overhead API ;
 - charge : exécution séquentielle par défaut, avec un niveau de concurrence
   configurable pour mesurer le throughput sous charge.
+- disponibilité : endpoint de vie indépendant du modèle et endpoint de
+  readiness vérifiant le chargement des données et du pipeline ;
+- cycle de vie : modèle chargé à la première requête ou au contrôle de
+  readiness, avec verrou pour éviter plusieurs initialisations concurrentes.
 
 ## Préparation des données
 
