@@ -1,6 +1,8 @@
 # P10 - IA as a Service avec FastAPI
 
-Squelette reproductible pour étudier le passage d'un modèle léger à une API d'inférence.
+Base reproductible pour étudier le passage d'un modèle léger à une API
+d'inférence. Le cas d'usage actuel est la prédiction de la victoire de l'équipe
+1 dans un match classé de Brawl Stars.
 
 ## Architecture
 
@@ -8,7 +10,7 @@ Squelette reproductible pour étudier le passage d'un modèle léger à une API 
 flowchart LR
     C[Client / benchmark] --> A[FastAPI /predict]
     A --> P[Validation + preprocessing]
-    P --> M[Logistic Regression]
+    P --> M[OneHotEncoder + Logistic Regression]
     M --> Q[Postprocessing]
     Q --> R[JSON response]
 ```
@@ -30,6 +32,20 @@ Les métriques cumulées du processus sont disponibles sur `GET /metrics` :
 - nombre d'erreurs de prédiction ;
 - latence totale et moyenne du modèle.
 
+## Préparer les données Brawl Stars
+
+Le dépôt contient un petit échantillon de démarrage pour lancer l'API sans
+télécharger plusieurs millions de lignes. Pour préparer un échantillon réel
+depuis [EliF77/brawlstars-ranked](https://huggingface.co/datasets/EliF77/brawlstars-ranked),
+lancer :
+
+```powershell
+python scripts/prepare_brawl_data.py --limit 100000
+```
+
+Le fichier généré est local. La variable `BRAWL_DATA_PATH` permet de choisir
+un autre CSV préparé.
+
 ## Exemple de requête
 
 ```powershell
@@ -37,7 +53,7 @@ Invoke-RestMethod `
   -Uri http://127.0.0.1:8000/predict `
   -Method Post `
   -ContentType "application/json" `
-  -Body '{"instances":[[5.1,3.5,1.4,0.2]]}'
+  -Body '{"instances":[{"mode":"brawlBall","map":"Sneaky Fields","team_1_avg_elo":12.5,"team_2_avg_elo":11.0,"team_1_avg_power":11.0,"team_2_avg_power":11.0}]}'
 ```
 
 ## Benchmark
@@ -68,15 +84,23 @@ Les mesures doivent préciser la machine, le système, Python, les versions des 
 ```text
 app/
   main.py          API FastAPI
-  model.py         modèle et preprocessing
+  brawl_model.py   modèle et preprocessing Brawl Stars
+  model.py         baseline historique Iris
 scripts/
   benchmark.py     charge et comparaison modèle/API
+  prepare_brawl_data.py prépare un échantillon Hugging Face
+data/
+  brawlstars_ranked_sample.csv échantillon minimal de démarrage
 docs/
   architecture.md  schéma et choix
   rapport.md       trame du rapport final
 results/           CSV générés localement
 ```
 
-## Limites du squelette
+## Limites de la base
 
-Le modèle Iris est volontairement petit et sert de baseline pédagogique. Les valeurs de benchmark sont à produire sur votre machine ; elles ne doivent pas être inventées ni comparées entre machines différentes.
+Le CSV versionné est un échantillon pédagogique minimal. Il doit être
+remplacé par un échantillon réel préparé avec `prepare_brawl_data.py` avant
+toute analyse de performance ou de qualité. Les valeurs de benchmark sont à
+produire sur votre machine ; elles ne doivent pas être inventées ni comparées
+entre machines différentes.

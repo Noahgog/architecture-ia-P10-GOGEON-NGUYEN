@@ -13,7 +13,7 @@ from pathlib import Path
 import psutil
 import requests
 
-from app.model import predict_batch
+from app.brawl_model import BrawlMatch, predict_batch
 
 
 def parse_args() -> argparse.Namespace:
@@ -25,7 +25,14 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-SAMPLE = [5.1, 3.5, 1.4, 0.2]
+SAMPLE = BrawlMatch(
+    mode="brawlBall",
+    map="Sneaky Fields",
+    team_1_avg_elo=12.5,
+    team_2_avg_elo=11.0,
+    team_1_avg_power=11.0,
+    team_2_avg_power=11.0,
+)
 
 
 def percentile(values: list[float], value: float) -> float:
@@ -34,7 +41,7 @@ def percentile(values: list[float], value: float) -> float:
     return ordered[index]
 
 
-def run_model(batch: list[list[float]], repetitions: int) -> list[float]:
+def run_model(batch: list[BrawlMatch], repetitions: int) -> list[float]:
     latencies = []
     for _ in range(repetitions):
         started = time.perf_counter()
@@ -43,13 +50,22 @@ def run_model(batch: list[list[float]], repetitions: int) -> list[float]:
     return latencies
 
 
-def run_api(url: str, batch: list[list[float]], repetitions: int, timeout: float) -> tuple[list[float], int]:
+def run_api(
+    url: str,
+    batch: list[BrawlMatch],
+    repetitions: int,
+    timeout: float,
+) -> tuple[list[float], int]:
     latencies = []
     errors = 0
     for _ in range(repetitions):
         started = time.perf_counter()
         try:
-            response = requests.post(url, json={"instances": batch}, timeout=timeout)
+            response = requests.post(
+                url,
+                json={"instances": [instance.__dict__ for instance in batch]},
+                timeout=timeout,
+            )
             if response.status_code >= 400:
                 errors += 1
         except requests.RequestException:

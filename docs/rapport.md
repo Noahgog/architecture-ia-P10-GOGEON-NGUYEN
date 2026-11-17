@@ -1,5 +1,16 @@
 # Rapport - P10 IA as a Service avec FastAPI
 
+## Sujet retenu
+
+Prédire la victoire de l'équipe 1 avant un match classé de Brawl Stars à partir
+du mode, de la carte et des agrégats d'Elo et de niveau de pouvoir des deux
+équipes. Le dataset source est
+[EliF77/brawlstars-ranked](https://huggingface.co/datasets/EliF77/brawlstars-ranked).
+
+La base utilise un échantillon CSV local pour démarrer rapidement. Les résultats
+de performance doivent être produits avec un échantillon préparé par
+`scripts/prepare_brawl_data.py`, et non avec l'échantillon pédagogique versionné.
+
 ## 1. Cahier des charges
 
 Décrire l'API, le format d'entrée/sortie, les contraintes de latence, throughput, mémoire et reproductibilité.

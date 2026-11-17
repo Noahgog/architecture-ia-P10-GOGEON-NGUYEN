@@ -1,24 +1,20 @@
 from __future__ import annotations
 
 from threading import Lock
-from typing import Annotated
-
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from app.model import predict_batch
+from app.brawl_model import BrawlMatch, predict_batch
 
 app = FastAPI(
     title="P10 IA as a Service",
     version="0.1.0",
-    description="Baseline d'inférence Iris pour mesurer l'overhead d'une API.",
+    description="API de prédiction du vainqueur d'un match Brawl Stars.",
 )
 
 
 class PredictionRequest(BaseModel):
-    instances: list[
-        Annotated[list[float], Field(min_length=4, max_length=4)]
-    ] = Field(..., min_length=1)
+    instances: list[BrawlMatch] = Field(..., min_length=1)
 
 
 class PredictionItem(BaseModel):
@@ -77,7 +73,23 @@ def predict(request: PredictionRequest) -> PredictionResponse:
         _prediction_requests_total += 1
 
     try:
-        predictions, model_latency_ms = predict_batch(request.instances)
+        predictions, model_latency_ms = predict_batch(
+            [
+                BrawlMatch(
+                    mode=item.mode,
+                    map=item.map,
+                    team_1_avg_elo=item.team_1_avg_elo,
+                    team_2_avg_elo=item.team_2_avg_elo,
+                    team_1_avg_power=item.team_1_avg_power,
+                    team_2_avg_power=item.team_2_avg_power,
+                )
+                for item in request.instances
+            ]
+        )
+    except FileNotFoundError as error:
+        with _metrics_lock:
+            _prediction_errors_total += 1
+        raise HTTPException(status_code=503, detail=str(error)) from error
     except (TypeError, ValueError) as error:
         with _metrics_lock:
             _prediction_errors_total += 1

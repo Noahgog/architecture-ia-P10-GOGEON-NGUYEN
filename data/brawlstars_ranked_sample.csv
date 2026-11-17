@@ -1,0 +1,13 @@
+mode,map,team_1_avg_elo,team_2_avg_elo,team_1_avg_power,team_2_avg_power,team_1_win
+brawlBall,Sneaky Fields,12.5,11.0,11.0,11.0,1
+brawlBall,Sneaky Fields,11.0,13.0,11.0,11.0,0
+gemGrab,Gem Fort,13.3,12.0,11.0,11.0,1
+gemGrab,Gem Fort,12.0,13.3,11.0,11.0,0
+heist,Kaboom Canyon,13.0,12.0,11.0,11.0,1
+heist,Kaboom Canyon,11.0,13.0,11.0,11.0,0
+hotZone,Dueling Beetles,13.0,12.0,11.0,11.0,1
+hotZone,Dueling Beetles,12.0,13.0,11.0,11.0,0
+knockout,New Horizons,12.0,13.0,11.0,11.0,0
+knockout,New Horizons,13.0,12.0,11.0,11.0,1
+bounty,Dry Season,12.0,12.0,11.0,11.0,1
+bounty,Dry Season,12.0,12.0,11.0,11.0,0
