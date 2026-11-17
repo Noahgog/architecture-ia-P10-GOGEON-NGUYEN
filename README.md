@@ -24,6 +24,12 @@ uvicorn app.main:app --reload
 
 Puis ouvrir `http://127.0.0.1:8000/docs`.
 
+Les métriques cumulées du processus sont disponibles sur `GET /metrics` :
+
+- nombre de requêtes `/predict` ;
+- nombre d'erreurs de prédiction ;
+- latence totale et moyenne du modèle.
+
 ## Exemple de requête
 
 ```powershell
