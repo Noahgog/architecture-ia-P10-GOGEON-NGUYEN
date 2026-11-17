@@ -7,6 +7,7 @@ import platform
 import statistics
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -21,6 +22,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--url", default="http://127.0.0.1:8000/predict")
     parser.add_argument("--requests", type=int, default=100)
     parser.add_argument("--batch-sizes", default="1,4,16")
+    parser.add_argument(
+        "--concurrency",
+        type=int,
+        default=1,
+        help="Nombre de requêtes HTTP exécutées simultanément",
+    )
     parser.add_argument("--timeout", type=float, default=5.0)
     return parser.parse_args()
 
@@ -50,34 +57,51 @@ def run_model(batch: list[BrawlMatch], repetitions: int) -> list[float]:
     return latencies
 
 
+def request_api(
+    url: str,
+    batch: list[BrawlMatch],
+    timeout: float,
+) -> tuple[float, bool]:
+    started = time.perf_counter()
+    try:
+        response = requests.post(
+            url,
+            json={"instances": [instance.__dict__ for instance in batch]},
+            timeout=timeout,
+        )
+        failed = response.status_code >= 400
+    except requests.RequestException:
+        failed = True
+    return (time.perf_counter() - started) * 1000, failed
+
+
 def run_api(
     url: str,
     batch: list[BrawlMatch],
     repetitions: int,
+    concurrency: int,
     timeout: float,
-) -> tuple[list[float], int]:
-    latencies = []
-    errors = 0
-    for _ in range(repetitions):
-        started = time.perf_counter()
-        try:
-            response = requests.post(
-                url,
-                json={"instances": [instance.__dict__ for instance in batch]},
-                timeout=timeout,
+) -> tuple[list[float], int, float]:
+    started = time.perf_counter()
+    with ThreadPoolExecutor(max_workers=concurrency) as executor:
+        results = list(
+            executor.map(
+                lambda _: request_api(url, batch, timeout),
+                range(repetitions),
             )
-            if response.status_code >= 400:
-                errors += 1
-        except requests.RequestException:
-            errors += 1
-        latencies.append((time.perf_counter() - started) * 1000)
-    return latencies, errors
+        )
+    wall_time_seconds = time.perf_counter() - started
+    latencies = [latency for latency, _ in results]
+    errors = sum(failed for _, failed in results)
+    return latencies, errors, wall_time_seconds
 
 
 def main() -> None:
     args = parse_args()
     if args.requests < 1:
         raise ValueError("--requests must be positive")
+    if args.concurrency < 1:
+        raise ValueError("--concurrency must be positive")
 
     results_dir = Path("results")
     results_dir.mkdir(exist_ok=True)
@@ -87,7 +111,13 @@ def main() -> None:
     for batch_size in (int(value) for value in args.batch_sizes.split(",")):
         batch = [SAMPLE] * batch_size
         model_latencies = run_model(batch, args.requests)
-        api_latencies, errors = run_api(args.url, batch, args.requests, args.timeout)
+        api_latencies, errors, api_wall_time_seconds = run_api(
+            args.url,
+            batch,
+            args.requests,
+            args.concurrency,
+            args.timeout,
+        )
         model_median = statistics.median(model_latencies)
         api_median = statistics.median(api_latencies)
         rows.append(
@@ -99,8 +129,11 @@ def main() -> None:
                 "api_median_ms": round(api_median, 4),
                 "api_p95_ms": round(percentile(api_latencies, 0.95), 4),
                 "overhead_median_ms": round(api_median - model_median, 4),
-                "throughput_req_s": round(args.requests / (sum(api_latencies) / 1000), 4),
+                "throughput_req_s": round(
+                    args.requests / api_wall_time_seconds, 4
+                ),
                 "error_rate": round(errors / args.requests, 4),
+                "concurrency": args.concurrency,
                 "cpu_percent": psutil.cpu_percent(interval=0.1),
                 "memory_percent": psutil.virtual_memory().percent,
             }
@@ -120,6 +153,7 @@ def main() -> None:
         "url": args.url,
         "requests": args.requests,
         "batch_sizes": args.batch_sizes,
+        "concurrency": args.concurrency,
     }
     (results_dir / f"benchmark_{timestamp}.json").write_text(
         json.dumps(metadata, indent=2), encoding="utf-8"

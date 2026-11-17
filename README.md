@@ -64,6 +64,9 @@ Avec l'API démarrée dans un terminal :
 python scripts/benchmark.py --url http://127.0.0.1:8000/predict --requests 200 --batch-sizes 1,4,16
 ```
 
+Pour mesurer aussi la montée en charge, ajouter par exemple
+`--concurrency 4`. La valeur par défaut (`1`) conserve le benchmark séquentiel.
+
 Le script mesure :
 
 - latence modèle seul ;
